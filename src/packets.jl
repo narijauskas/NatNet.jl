@@ -16,28 +16,22 @@ const NAT_DISCONNECT            = 9
 const NAT_UNRECOGNIZED_REQUEST  = 100
 
 #---------------------------------- parsing helpers ----------------------------------#
-mutable struct Packet
+mutable struct Unpacker
     bytes::Vector{UInt8}
 end
 
 decode(::Type{T}, bytes) where {T} = ltoh(reinterpret(T, bytes)[])::T
-Base.popfirst!(pkt::Packet, n::Integer) = map(x->popfirst!(pkt.bytes), 1:n)
+popfirst!(unpack::Unpacker, n::Integer) = map(x->popfirst!(unpack.bytes), 1:n)
+popuntil!(f::Function, unpack::Unpacker) = popfirst!(unpack, findnext(f, unpack.bytes))[1:end-1]
 
-# (pkt::Packet)(T, n) = Tuple(pkt(T) for _ in 1:n)
-(pkt::Packet)(::Type{T}) where {T<:Number} = decode(T, popfirst!(pkt, sizeof(T)))
-(pkt::Packet)(::Type{T}) where {T} = T((pkt(F) for F in fieldtypes(T))...)
-(pkt::Packet)(::Type{Vector{T}}) where {T} = [pkt(T) for _ in 1:pkt(Int32)]
-(pkt::Packet)(::Type{T}) where {T<:Tuple} = Tuple(pkt(F) for F in fieldtypes(T))
+(unpack::Unpacker)(::Type{T}) where {T}          = T((unpack(F) for F in fieldtypes(T))...)
+(unpack::Unpacker)(::Type{T}) where {T<:Number}  = decode(T, popfirst!(unpack, sizeof(T)))
+(unpack::Unpacker)(::Type{T}) where {T<:Tuple}   = Tuple(unpack(F) for F in fieldtypes(T))
+(unpack::Unpacker)(::Type{Vector{T}}) where {T}  = [unpack(T) for _ in 1:unpack(Int32)]
+(unpack::Unpacker)(::Type{<:AbstractString})     = String(popuntil!(isequal(0x00), unpack)) # unpack until '\0' character
 
-(pkt::Packet)(::Type{Point}) = Point(pkt(Float32), pkt(Float32), pkt(Float32))
-(pkt::Packet)(::Type{Quaternion}) = Quaternion(pkt(Float32), pkt(Float32), pkt(Float32), pkt(Float32))
-
-function (pkt::Packet)(::Type{String})
-    # unpack until '\0' character (drop from output)
-    n = findnext(isequal(0x00), pkt.bytes)
-    String(popfirst!(pkt, n)[1:end-1])
-end
-
+# (pkt::Packet)(::Type{Point}) = Point((pkt(Float32) for _ in 1:3)...)
+# (pkt::Packet)(::Type{Quaternion}) = Quaternion((pkt(Float32) for _ in 1:4)...)
 
 #---------------------------------- NatNet data types ----------------------------------#
 
@@ -131,17 +125,17 @@ is_recording(x)            = (x.param & 0x01) != 0
 tracked_models_changed(x)  = (x.param & 0x02) != 0
 
 
-Base.show(io::IO, frame::NatNetFrame) = print(io, "NatNetFrame[$(frame.frame_number)]")
-function Base.show(io::IO, ::MIME"text/plain", frame::NatNetFrame)
-    println(frame, ":")
+show(io::IO, frame::NatNetFrame) = print(io, "NatNetFrame[$(frame.frame_number)]")
+function show(io::IO, ::MIME"text/plain", frame::NatNetFrame)
+    println(io, frame, ":")
     if !get(io, :compact, false)
-        println("  $(length(frame.markersets)) ",        "markersets")
-        println("  $(length(frame.unlabeled_markers)) ", "unlabeled markers")
-        println("  $(length(frame.rigid_bodies)) ",      "rigid bodies")
-        println("  $(length(frame.skeletons)) ",         "skeletons")
-        println("  $(length(frame.labeled_markers)) ",   "labeled markers")
-        println("  $(length(frame.force_plate_data)) ",  "force plates")
-        println("  $(length(frame.device_data)) ",       "devices")
+        println(io, "  $(length(frame.markersets)) ",        "markersets")
+        println(io, "  $(length(frame.unlabeled_markers)) ", "unlabeled markers")
+        println(io, "  $(length(frame.rigid_bodies)) ",      "rigid bodies")
+        println(io, "  $(length(frame.skeletons)) ",         "skeletons")
+        println(io, "  $(length(frame.labeled_markers)) ",   "labeled markers")
+        println(io, "  $(length(frame.force_plate_data)) ",  "force plates")
+        println(io, "  $(length(frame.device_data)) ",       "devices")
     end
 end
 

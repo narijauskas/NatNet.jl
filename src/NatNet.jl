@@ -4,16 +4,20 @@ using Crayons
 using Sockets
 using Quaternions
 using GeometryBasics: Point
+
 import Sockets: recv, send
 import Base: show
 import Base: isopen, open, close
-# using Base.Threads: @spawn
+import Base: popfirst!
 
 include("client.jl")
-export NatNetClient, recv, send
+export NatNetClient
+export recv, send
 
 include("packets.jl")
-export process_message
+export Point, QuaternionF32
 export NatNetFrame
+export UnlabeledMarker, LabeledMarker, MarkerSet
+export RigidBody, Skeleton, DeviceData
 
-end
+end # module NatNet

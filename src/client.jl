@@ -47,10 +47,16 @@ function show(io::IO, nn::NatNetClient)
     print(io, crayon"bold", isopen(nn) ? crayon"green"("[open]") : crayon"red"("[closed]"))
 end
 
-recv(nn::NatNetClient) = isopen(nn) && recv(nn.socket)
+# recv(nn::NatNetClient) = isopen(nn) && recv(nn.socket)
 send(nn::NatNetClient, msg) = isopen(nn) && send(nn.socket, nn.group, nn.port, msg)
 
-
+function recv(nn::NatNetClient)
+    isopen(nn) || return
+    pkt = Packet(recv(nn.socket))
+    pkt(UInt16) == NAT_FRAMEOFDATA || return
+    pkt(UInt16) # packet size
+    pkt(NatNetFrame)
+end
 # #FUTURE:
 # function recv(client::NatNetClient)
 #     decode_natnet(recv(client.socket), client.natnet_version)

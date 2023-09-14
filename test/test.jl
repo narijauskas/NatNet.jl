@@ -1,0 +1,3 @@
+using NatNet
+
+nn = NatNetClient()

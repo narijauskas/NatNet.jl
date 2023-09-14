@@ -3,6 +3,12 @@ uuid = "a9679e0c-b6e5-4379-b195-681663729b60"
 authors = ["Mantas Naris"]
 version = "1.0.0-DEV"
 
+[deps]
+Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
+GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
+Quaternions = "94ee1d12-ae83-5a48-8b1c-48b8ff168ae0"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+
 [compat]
 julia = "1"
 
